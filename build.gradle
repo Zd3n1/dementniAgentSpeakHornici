@@ -47,6 +47,8 @@ task run (type: JavaExec, dependsOn: 'classes') {
     description 'runs the application'
     mainClass = 'jason.infra.local.RunLocalMAS'
     args = ['miners.mas2j']
+    // increase JDK XML parser attribute limit to allow parsing large serverconfig files
+    jvmArgs = ['-Djdk.xml.elementAttributeLimit=1000']
 	// options:
 	//     args = ['miners.mas2j', '--debug', '--no-net', '--empty-mas']
 	//     args = ['miners.mas2j', '--log-conf', 'l.p'] // to use file l.p to configure logging
@@ -58,6 +60,8 @@ task runJade (type: JavaExec, dependsOn: 'classes') {
     description 'runs the application with Jade infrastructure'
     mainClass = 'jason.infra.jade.RunJadeMAS'
     args = [ 'miners.mas2j', '-gui' ]
+	// increase JDK XML parser attribute limit for JADE run as well
+	jvmArgs = ['-Djdk.xml.elementAttributeLimit=1000']
     // options:
     //     args = ['miners.mas2j', '-gui', '-sniffer' ]
     // and all usual JADE options for jade.Boot
