@@ -28,6 +28,9 @@ search_gold_strategy(near_unvisited). // initial strategy
      .print("Starting simulation ", S);
      !choose_goal.
 
+// jednorazovej fetcher: miner1 si vezme jen 1 gold a hned jde k depu
++pos(_,_,0) : .my_name(Me) & Me == miner1 <- +single_fetcher.
+
 
 /*
    decide the goal transition
@@ -40,7 +43,10 @@ search_gold_strategy(near_unvisited). // initial strategy
 // find the closest gold among the known options
 @cgod2[atomic]
 +!choose_goal
- :  container_has_space &               // I have space for more gold
+@cgod2[atomic]
+// normal behaviour: pokud nejsem single_fetcher, hledam vic goldu
++!choose_goal
+ :  not single_fetcher & container_has_space &               // I have space for more gold
     .findall(gold(X,Y),gold(X,Y),LG) &  // LG is all known golds
     evaluate_golds(LG,LD) &             // evaluate golds in LD
     .print("All golds=",LG,", evaluation=",LD) &
@@ -48,6 +54,14 @@ search_gold_strategy(near_unvisited). // initial strategy
     .min(LD,d(D,NewG,_)) &              // get the near
     worthwhile(NewG)
  <- .print("Gold options are ",LD,". Next gold is ",NewG);
+    !change_to_fetch(NewG).
+
+// single_fetcher: vezme nejblizsi gold (jen 1) a potom jde k depu
++!choose_goal
+ :  single_fetcher & container_has_space &
+    .findall(gold(X,Y),gold(X,Y),LG) & .length(LG) > 0
+ <- .min(LG,d(D,NewG,_));
+    .print("single_fetcher: choosing ",NewG);
     !change_to_fetch(NewG).
 
 +!choose_goal // there is no worth gold

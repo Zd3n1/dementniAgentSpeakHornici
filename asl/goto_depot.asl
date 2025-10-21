@@ -45,3 +45,6 @@
 +!leave_depot : pos(X,Y,_) & not cell(X,Y+1,ally) <- do(down).  // no ally down
 +!leave_depot. // stay in depot and simply choose the next goal
 
+// pokud jsem byl single_fetcher a uz jsem v depu bez zlata, role konci
++pos(X,Y,_) : single_fetcher & depot(_,X,Y) & carrying_gold(0) <- -single_fetcher.
+

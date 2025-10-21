@@ -236,6 +236,41 @@ public class MiningEnvironment extends TimeSteppedEnvironment {
         Literal cg = ASSyntax.createLiteral("carrying_gold", ASSyntax.createNumber(model.getGoldsWithAg(ag)));
         addPercept(agName, cg);
 
+        // inform agent that it is protecting (locked) when model marks it as locked
+        if (model.isAgentLocked(ag)) {
+            addPercept(agName, ASSyntax.createLiteral("protecting"));
+        }
+
+        // assign an orthogonal protect target to blue-team agents
+        if (model.getDepot() != null && ag >= model.getAgsByTeam()) {
+            Location dt = model.getDepot();
+            int[] dx = {0,1,0,-1}; // up, right, down, left
+            int[] dy = {-1,0,1,0};
+            int start = (ag - model.getAgsByTeam()) % 4;
+            if (start < 0) start += 4;
+            boolean assigned = false;
+            // try preferred slot first, then next ones
+            for (int i=0;i<4 && !assigned;i++) {
+                int s = (start + i) % 4;
+                int tx = dt.x + dx[s];
+                int ty = dt.y + dy[s];
+                if (model.inGrid(tx,ty) && !model.hasObject(WorldModel.AGENT, tx, ty) && !model.hasObject(WorldModel.OBSTACLE, tx, ty)) {
+                    addPercept(agName, ASSyntax.createLiteral("protect_target", ASSyntax.createNumber(tx), ASSyntax.createNumber(ty)));
+                    assigned = true;
+                }
+            }
+            // fallback: if none free, give any orth neighbor that is not obstacle
+            if (!assigned) {
+                for (int s=0;s<4 && !assigned;s++) {
+                    int tx = dt.x + dx[s];
+                    int ty = dt.y + dy[s];
+                    if (model.inGrid(tx,ty) && !model.hasObject(WorldModel.OBSTACLE, tx, ty)) {
+                        addPercept(agName, ASSyntax.createLiteral("protect_target", ASSyntax.createNumber(tx), ASSyntax.createNumber(ty)));
+                        assigned = true;
+                    }
+                }
+            }
+        }
         if (model.mayCarryMoreGold(ag)) {
             addPercept(agName, aCAP);
         }

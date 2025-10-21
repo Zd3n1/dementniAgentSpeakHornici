@@ -36,6 +36,8 @@ public class WorldModel extends GridWorldModel {
 
     int agsByTeam = 6;
 
+    boolean[] lockedAgents; // true if agent is fixed (can not move or be moved)
+
     public enum Move {
         UP, DOWN, RIGHT, LEFT
     };
@@ -51,6 +53,8 @@ public class WorldModel extends GridWorldModel {
         agsByTeam = nbAg/2;
 
         goldsWithAg = new int[nbAg];
+        lockedAgents = new boolean[nbAg];
+        for (int i=0; i< nbAg; i++) lockedAgents[i] = false;
         for (int i=0; i< goldsWithAg.length; i++) goldsWithAg[i] = 0;
     }
 
@@ -148,6 +152,11 @@ public class WorldModel extends GridWorldModel {
     /** Actions **/
 
     synchronized public boolean move(Move dir, int ag) throws Exception {
+        // locked agents cannot move
+        if (ag >= 0 && ag < lockedAgents.length && lockedAgents[ag]) {
+            logger.fine("Agent " + (ag+1) + " is locked and cannot move.");
+            return false;
+        }
         if (ag < 0) {
             logger.warning("** Trying to move unknown agent!");
             return false;
@@ -182,6 +191,15 @@ public class WorldModel extends GridWorldModel {
         return false;
     }
 
+    public void setAgentLocked(int ag, boolean locked) {
+        if (ag >= 0 && ag < lockedAgents.length) lockedAgents[ag] = locked;
+    }
+
+    public boolean isAgentLocked(int ag) {
+        if (ag >= 0 && ag < lockedAgents.length) return lockedAgents[ag];
+        return false;
+    }
+
     private boolean canMoveTo(int ag, Location l) {
         if (isFreeOfObstacle(l)) {
             if (!l.equals(getDepot()) || isCarryingGold(ag)) { // if depot, the must be carrying gold
@@ -197,6 +215,8 @@ public class WorldModel extends GridWorldModel {
             if (getGoldsWithAg(ag) < AG_CAPACITY) {
                 remove(WorldModel.GOLD, l.x, l.y);
                 goldsWithAg[ag]++;
+                // after picking, update lock state (protector should be unlocked when carrying gold)
+                updateLockForAgent(ag);
                 return true;
             } else {
                 logger.warning("Agent " + (ag + 1) + " is trying the pick gold, but it is already carrying "+(AG_CAPACITY)+" golds!");
@@ -217,13 +237,61 @@ public class WorldModel extends GridWorldModel {
                 else
                     goldsInDepotBlue += goldsWithAg[ag];
                 goldsWithAg[ag] = 0;
+                // after dropping, maybe re-lock if in protect position
+                updateLockForAgent(ag);
             } else {
                 add(WorldModel.GOLD, l.x, l.y);
                 goldsWithAg[ag]--;
+                updateLockForAgent(ag);
             }
             return true;
         }
         return false;
+    }
+
+    @Override
+    public void setAgPos(int ag, int x, int y) {
+        super.setAgPos(ag, x, y);
+        updateLockForAgent(ag);
+    }
+
+    @Override
+    public void setAgPos(int ag, Location l) {
+        super.setAgPos(ag, l);
+        updateLockForAgent(ag);
+    }
+
+    private void updateLockForAgent(int ag) {
+        // only blue team protectors are considered for locking
+        if (ag < 0 || ag >= lockedAgents.length) return;
+        if (depot == null) { // no depot yet
+            lockedAgents[ag] = false;
+            return;
+        }
+        Location loc = getAgPos(ag);
+        if (loc == null) {
+            lockedAgents[ag] = false;
+            return;
+        }
+        // protectors are the blue team (ids >= agsByTeam)
+        if (ag >= agsByTeam) {
+            // lock if near depot and not carrying gold
+            if (isNearDepot(loc) && !isCarryingGold(ag)) {
+                lockedAgents[ag] = true;
+            } else {
+                lockedAgents[ag] = false;
+            }
+        } else {
+            lockedAgents[ag] = false;
+        }
+    }
+
+    private boolean isNearDepot(Location l) {
+        if (depot == null || l == null) return false;
+        int dx = Math.abs(l.x - depot.x);
+        int dy = Math.abs(l.y - depot.y);
+        // only up, down, left, right
+        return (dx == 1 && dy == 0) || (dx == 0 && dy == 1);
     }
 
 
