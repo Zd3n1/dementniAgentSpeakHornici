@@ -42,8 +42,6 @@ search_gold_strategy(near_unvisited). // initial strategy
 // Others golds left and I have space
 // find the closest gold among the known options
 @cgod2[atomic]
-+!choose_goal
-@cgod2[atomic]
 // normal behaviour: pokud nejsem single_fetcher, hledam vic goldu
 +!choose_goal
  :  not single_fetcher & container_has_space &               // I have space for more gold

@@ -9,7 +9,7 @@
  */
 
 MAS miners {
-    environment: env.MiningEnvironment(11, 200, yes, "dummy", "miner", 1000)
+    environment: env.MiningEnvironment(11, 100, yes, "dummy", "miner", 1000)
         // parameters: 1. environment configuration id (from 1 to 13)
         //                   11 is Fence in 2007 Contest
         //                   12 is Semiramis in 2007 Contest
@@ -24,12 +24,31 @@ MAS miners {
         // red team
         dummy agentArchClass arch.LocalMinerArch #6;
 
-        // protektoři (miner3, miner4, miner5, miner6)
-        miner
+        // blue team - protectors
+        miner1 protector
                agentClass agent.ProtectorAgent
                beliefBaseClass agent.DiscardBelsBB("my_status","picked")
-               agentArchClass arch.LocalMinerArch
-               #4;
+               agentArchClass arch.LocalMinerArch;
+        miner2 protector
+               agentClass agent.ProtectorAgent
+               beliefBaseClass agent.DiscardBelsBB("my_status","picked")
+               agentArchClass arch.LocalMinerArch;
+        miner3 protector
+               agentClass agent.ProtectorAgent
+               beliefBaseClass agent.DiscardBelsBB("my_status","picked")
+               agentArchClass arch.LocalMinerArch;
+        miner4 protector
+               agentClass agent.ProtectorAgent
+               beliefBaseClass agent.DiscardBelsBB("my_status","picked")
+               agentArchClass arch.LocalMinerArch;
+
+        // blue team - collectors
+        miner5 miner
+               beliefBaseClass agent.DiscardBelsBB("my_status","picked")
+               agentArchClass arch.LocalMinerArch;
+        miner6 miner
+               beliefBaseClass agent.DiscardBelsBB("my_status","picked")
+               agentArchClass arch.LocalMinerArch;
 
     aslSourcePath: "asl";
 }

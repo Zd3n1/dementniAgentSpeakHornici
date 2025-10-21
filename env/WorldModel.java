@@ -37,6 +37,7 @@ public class WorldModel extends GridWorldModel {
     int agsByTeam = 6;
 
     boolean[] lockedAgents; // true if agent is fixed (can not move or be moved)
+    int[] protectReservations; // owner agent id for each orthogonal slot (-1 = free)
 
     public enum Move {
         UP, DOWN, RIGHT, LEFT
@@ -55,7 +56,58 @@ public class WorldModel extends GridWorldModel {
         goldsWithAg = new int[nbAg];
         lockedAgents = new boolean[nbAg];
         for (int i=0; i< nbAg; i++) lockedAgents[i] = false;
+        protectReservations = new int[4];
+        for (int i=0; i<4; i++) protectReservations[i] = -1;
         for (int i=0; i< goldsWithAg.length; i++) goldsWithAg[i] = 0;
+    }
+
+    public synchronized boolean reserveProtectSlot(int slot, int ag) {
+        if (slot < 0 || slot >= protectReservations.length) return false;
+        if (protectReservations[slot] == -1 || protectReservations[slot] == ag) {
+            protectReservations[slot] = ag;
+            return true;
+        }
+        return false;
+    }
+
+    public synchronized void freeProtectSlot(int slot) {
+        if (slot < 0 || slot >= protectReservations.length) return;
+        protectReservations[slot] = -1;
+    }
+
+    public synchronized void freeProtectSlotForAgent(int ag) {
+        if (protectReservations == null) return;
+        for (int i = 0; i < protectReservations.length; i++) {
+            if (protectReservations[i] == ag) protectReservations[i] = -1;
+        }
+    }
+
+    public synchronized int getProtectSlotOwner(int slot) {
+        if (slot < 0 || slot >= protectReservations.length) return -1;
+        return protectReservations[slot];
+    }
+
+    // map a location to slot index 0=up,1=right,2=down,3=left or -1 if not orth neighbor
+    public int getSlotIndexForLocation(Location l) {
+        if (depot == null || l == null) return -1;
+        int dx = l.x - depot.x;
+        int dy = l.y - depot.y;
+        if (dx == 0 && dy == -1) return 0; // up
+        if (dx == 1 && dy == 0) return 1;  // right
+        if (dx == 0 && dy == 1) return 2;  // down
+        if (dx == -1 && dy == 0) return 3; // left
+        return -1;
+    }
+
+    public int getSlotIndexForXY(int x, int y) {
+        if (depot == null) return -1;
+        int dx = x - depot.x;
+        int dy = y - depot.y;
+        if (dx == 0 && dy == -1) return 0; // up
+        if (dx == 1 && dy == 0) return 1;  // right
+        if (dx == 0 && dy == 1) return 2;  // down
+        if (dx == -1 && dy == 0) return 3; // left
+        return -1;
     }
 
     public int getAgsByTeam() {
@@ -275,15 +327,27 @@ public class WorldModel extends GridWorldModel {
         }
         // protectors are the blue team (ids >= agsByTeam)
         if (ag >= agsByTeam) {
-            // lock if near depot and not carrying gold
-            if (isNearDepot(loc) && !isCarryingGold(ag)) {
-                lockedAgents[ag] = true;
+            // lock if near depot and not carrying gold and the agent owns/can reserve the specific orth slot
+            int slot = getSlotIndexForLocation(loc);
+            if (slot != -1 && isNearDepot(loc) && !isCarryingGold(ag)) {
+                int owner = getProtectSlotOwner(slot);
+                boolean reserved = false;
+                if (owner == ag) {
+                    reserved = true;
+                } else if (owner == -1) {
+                    reserved = reserveProtectSlot(slot, ag);
+                }
+                lockedAgents[ag] = reserved;
             } else {
+                // not in a protect slot or carrying gold -> unlock and free any reservation
                 lockedAgents[ag] = false;
+                freeProtectSlotForAgent(ag);
             }
         } else {
             lockedAgents[ag] = false;
         }
+        // debug
+        //logger.fine("Agent " + (ag+1) + " locked=" + lockedAgents[ag]);
     }
 
     private boolean isNearDepot(Location l) {

@@ -78,6 +78,7 @@ public class MiningEnvironment extends TimeSteppedEnvironment {
 
     @Override
     public boolean executeAction(String ag, Structure action) {
+        logger.info("Agent " + ag + " executing action: " + action);
 
         @SuppressWarnings("unused")
         boolean result = false;
@@ -113,6 +114,12 @@ public class MiningEnvironment extends TimeSteppedEnvironment {
         } catch (Exception e) {
             logger.log(Level.SEVERE, "error executing " + action + " for " + ag + " (ag code:"+agId+")", e);
         }
+        
+        if (agId >= 0) {
+            Location agPos = model.getAgPos(agId);
+            logger.info("Agent " + ag + " (id:" + agId + ") is now at position: " + agPos);
+        }
+        
         return true;
     }
 
@@ -254,9 +261,16 @@ public class MiningEnvironment extends TimeSteppedEnvironment {
                 int s = (start + i) % 4;
                 int tx = dt.x + dx[s];
                 int ty = dt.y + dy[s];
-                if (model.inGrid(tx,ty) && !model.hasObject(WorldModel.AGENT, tx, ty) && !model.hasObject(WorldModel.OBSTACLE, tx, ty)) {
-                    addPercept(agName, ASSyntax.createLiteral("protect_target", ASSyntax.createNumber(tx), ASSyntax.createNumber(ty)));
-                    assigned = true;
+                if (!model.inGrid(tx,ty) || model.hasObject(WorldModel.OBSTACLE, tx, ty)) continue;
+                int owner = model.getProtectSlotOwner(s);
+                int occupant = model.getAgAtPos(tx, ty);
+                // try to reserve the slot only if free or already reserved for me, and not occupied by another agent
+                if ((owner == -1 && (occupant < 0 || occupant == ag)) || owner == ag) {
+                    if (model.reserveProtectSlot(s, ag)) {
+                        addPercept(agName, ASSyntax.createLiteral("protect_target", ASSyntax.createNumber(tx), ASSyntax.createNumber(ty)));
+                        logger.fine("Reserved protect slot " + s + " for " + agName + " at " + tx + "," + ty);
+                        assigned = true;
+                    }
                 }
             }
             // fallback: if none free, give any orth neighbor that is not obstacle
@@ -264,8 +278,10 @@ public class MiningEnvironment extends TimeSteppedEnvironment {
                 for (int s=0;s<4 && !assigned;s++) {
                     int tx = dt.x + dx[s];
                     int ty = dt.y + dy[s];
-                    if (model.inGrid(tx,ty) && !model.hasObject(WorldModel.OBSTACLE, tx, ty)) {
+                    if (!model.inGrid(tx,ty) || model.hasObject(WorldModel.OBSTACLE, tx, ty)) continue;
+                    if (model.reserveProtectSlot(s, ag)) {
                         addPercept(agName, ASSyntax.createLiteral("protect_target", ASSyntax.createNumber(tx), ASSyntax.createNumber(ty)));
+                        logger.fine("Reserved (fallback) protect slot " + s + " for " + agName + " at " + tx + "," + ty);
                         assigned = true;
                     }
                 }
