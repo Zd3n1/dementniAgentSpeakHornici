@@ -157,12 +157,20 @@ worthwhile(gold(GX,GY)) :-
 /*
    Events handling
      . gold perception
+     . gold dropping on ally encounter
 
    Note that perception (or communication) reaction should be
    atomic, so that their corresponding plans are handled
    before the current goal intention.
 */
 
+// Odlož zlato, pokud potkáš (sousedíš) s jiným agentem (ally) a zároveň neseš zlato k depu.
+@drop_on_ally[atomic]
++cell(_,_,ally) : .desire(goto_depot) & carrying_gold(NG) & NG > 0 <-
+    .print("Ally perceived while going to depot with gold! Dropping gold.");
+    do(drop);
+    .print("Dropped ", NG, " gold. Restarting choose_goal.");
+    !choose_goal.
 
 
 // I perceived unknown gold, decide next gold
