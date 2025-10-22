@@ -45,11 +45,11 @@ search_gold_strategy(near_unvisited). // initial strategy
 // normal behaviour: pokud nejsem single_fetcher, hledam vic goldu
 +!choose_goal
  :  not single_fetcher & container_has_space &               // I have space for more gold
-    .findall(gold(X,Y),gold(X,Y),LG) &  // LG is all known golds
-    evaluate_golds(LG,LD) &             // evaluate golds in LD
+    .findall(gold(X,Y),gold(X,Y),LG) &  // LG je všechno známé zlato
+    evaluate_golds(LG,LD) &             // vyhodnocení zlata v LD
     .print("All golds=",LG,", evaluation=",LD) &
-    .length(LD) > 0 &                   // is there a gold to fetch?
-    .min(LD,d(D,NewG,_)) &              // get the near
+    .length(LD) > 0 &                   // je tu zlato, které se má sebrat?
+    .min(LD,d(D,NewG,_)) &              // získej nejbližší
     worthwhile(NewG)
  <- .print("Gold options are ",LD,". Next gold is ",NewG);
     !change_to_fetch(NewG).
@@ -164,14 +164,27 @@ worthwhile(gold(GX,GY)) :-
    before the current goal intention.
 */
 
-// Odlož zlato, pokud potkáš (sousedíš) s jiným agentem (ally) a zároveň neseš zlato k depu.
+// odlož zlato u ally a neber ho zpět
 @drop_on_ally[atomic]
-+cell(_,_,ally) : .desire(goto_depot) & carrying_gold(NG) & NG > 0 <-
-    .print("Ally perceived while going to depot with gold! Dropping gold.");
++cell(_,_,ally) :  .desire(goto_depot) & carrying_gold(NG) & NG > 0 & pos(X,Y,Step) <-
+    .print("Ally perceived while going to depot with gold! Dropping gold to leave.");
     do(drop);
-    .print("Dropped ", NG, " gold. Restarting choose_goal.");
+    // Zaznamenej, že jsme zde právě odložili zlato
+    +dropped_gold_at(X,Y,Step);
+    // Oznám ostatním agentům, že je zde nově odložené zlato
+    .broadcast(tell, gold(X,Y));
+    .print("Dropped ", NG, " gold at ", X, ",", Y, ". Restarting choose_goal.");
     !choose_goal.
 
+// reaktivní plán: ignoruj vjem zlata, které agent právě odložil
+// tento plán se spustí ihned po vjemu +cell(X,Y,gold)
+@ignore_dropped_gold[atomic]
++cell(X,Y,gold) : pos(X,Y,Step) & dropped_gold_at(X,Y,PrevStep) & PrevStep < Step <-
+    .print("Ignoring gold at ", X, ",", Y, " because I just dropped it in step ", PrevStep);
+    // Odstraň záznam o odloženém zlatě
+    -dropped_gold_at(X,Y,PrevStep);
+    // Neudělej nic dalšího, čímž se zabrání spuštění jiného plánu +cell(X,Y,gold)
+    true.
 
 // I perceived unknown gold, decide next gold
 @pcell0[atomic]          // atomic: so as not to handle another
@@ -206,6 +219,7 @@ worthwhile(gold(GX,GY)) :-
   <- .drop_all_desires;
      !remove(gold(_,_));
      .abolish(picked(_));
+     .abolish(dropped_gold_at(_,_,_)); // Čištění po simulaci
 
      -+search_gold_strategy(near_unvisited);
      .abolish(quadrant(X1,Y1,X2,Y2));
