@@ -181,10 +181,9 @@ worthwhile(gold(GX,GY)) :-
 @ignore_dropped_gold[atomic]
 +cell(X,Y,gold) : pos(X,Y,Step) & dropped_gold_at(X,Y,PrevStep) & PrevStep < Step <-
     .print("Ignoring gold at ", X, ",", Y, " because I just dropped it in step ", PrevStep);
-    // Odstraň záznam o odloženém zlatě
+    // Odstraň záznam o odloženém zlatě (je platný jen pro jeden krok, pak už se předpokládá pohyb)
     -dropped_gold_at(X,Y,PrevStep);
-    // Neudělej nic dalšího, čímž se zabrání spuštění jiného plánu +cell(X,Y,gold)
-    true.
+    !change_to_search.
 
 // I perceived unknown gold, decide next gold
 @pcell0[atomic]          // atomic: so as not to handle another
