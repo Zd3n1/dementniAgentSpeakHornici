@@ -45,6 +45,10 @@ my_capacity(1). // kapacita 1, protože maximálně sebere zlato, které je př�
     .print("Protector in position - staying put (protecting)");
     !!protect_and_perceive.
 
++gold_reported(GX, GY) <-
+    .drop_all_desires;
+    .print("GOLD REPORTED").
+
 // konec simulace
 +end_of_simulation(S,R) <-
     .drop_all_desires;

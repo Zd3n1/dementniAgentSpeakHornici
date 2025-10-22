@@ -28,19 +28,19 @@ MAS miners {
         miner1 protector
                agentClass agent.ProtectorAgent
                beliefBaseClass agent.DiscardBelsBB("my_status","picked")
-               agentArchClass arch.LocalMinerArch;
+               agentArchClass arch.ProtectorArch;
         miner2 protector
                agentClass agent.ProtectorAgent
                beliefBaseClass agent.DiscardBelsBB("my_status","picked")
-               agentArchClass arch.LocalMinerArch;
+               agentArchClass arch.ProtectorArch;
         miner3 protector
                agentClass agent.ProtectorAgent
                beliefBaseClass agent.DiscardBelsBB("my_status","picked")
-               agentArchClass arch.LocalMinerArch;
+               agentArchClass arch.ProtectorArch;
         miner4 protector
                agentClass agent.ProtectorAgent
                beliefBaseClass agent.DiscardBelsBB("my_status","picked")
-               agentArchClass arch.LocalMinerArch;
+               agentArchClass arch.ProtectorArch;
 
         // blue team - collectors
         miner5 miner

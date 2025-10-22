@@ -1,34 +1,34 @@
 package arch;
 
-import jason.environment.grid.Location;
+import jason.asSemantics.Message;
+import jason.asSyntax.Literal;
+import jason.asSyntax.NumberTerm;
 
-public class ProtectorArch extends LocalMinerArch { // většina kódu je stejná jako v MinerArch
-    /**
-     * Protector nepotřebuje posílat informace o své poloze a zlatě,
-     * protože se po zakotvení nehýbe. Odstraníme broadcast.
-     */
+import java.util.logging.Level;
+
+public class ProtectorArch extends LocalMinerArch {
+
     @Override
-    void locationPerceived(int x, int y) {
-        Location oldLoc = model.getAgPos(getMyId());
-        if (oldLoc != null) {
-            model.clearAgView(oldLoc);
-        }
-        if (oldLoc == null || !oldLoc.equals(new Location(x,y))) {
-            try {
-                model.setAgPos(getMyId(), x, y);
-                model.incVisited(x, y);
-            } catch (Exception e) {
-                e.printStackTrace();
+    public void checkMail() {
+        try {
+            super.checkMail();
+
+            for (Message m : getTS().getC().getMailBox()) {
+                if (m.getPropCont() instanceof Literal content) {
+                    if (content.getFunctor().equals("gold") && content.getArity() == 2) {
+                        try {
+                            int gx = (int) ((NumberTerm) content.getTerm(0)).solve();
+                            int gy = (int) ((NumberTerm) content.getTerm(1)).solve();
+
+                            getTS().getAg().addBel(Literal.parseLiteral("gold_reported(" + gx + "," + gy + ")"));
+                        } catch (Exception e) {
+                            logger.log(Level.WARNING, "Failed to parse gold coordinates from message: " + m.getPropCont().toString(), e);
+                        }
+                    }
+                }
             }
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error checking email in ProtectorArch!", e);
         }
-    }
-
-    /**
-     * Vrací vždy false, aby zabránil Architektuře vnutit agentovi restart,
-     * když "zamrzne" na depotu.
-     */
-    @Override
-    public boolean isRobotFrozen() {
-        return false;
     }
 }
