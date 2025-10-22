@@ -1,9 +1,9 @@
 // protector agent
-// - jeho cílem je dojit na depot a blokovat přístup nepřátel
+// - jeho cílem je dojít na depot a blokovat přístup nepřátel
 // - jakmile je ve stavu, že chrání depot, může přebírat zlato od horníků, kteří ho donesou k němu
 // - přinesené zlato vkládá do depotu, dočasně tedy opustí ochranné pozice, uklidí zlato a pak chrání dál
 
-{ include("moving.asl") } //
+{ include("moving.asl") }
 
 /* beliefs */
 free.
