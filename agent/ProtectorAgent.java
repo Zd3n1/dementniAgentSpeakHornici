@@ -1,7 +1,6 @@
 package agent;
 
 import jason.asSemantics.Agent;
-import jason.JasonException;
 
 public class ProtectorAgent extends Agent {
 
@@ -21,9 +20,7 @@ public class ProtectorAgent extends Agent {
         try {
             super.loadAS(fullPath); // Volá původní metodu s explicitním jménem souboru
         } catch (Exception e) {
-            System.out.println("Oh kurwa");
-            // Pokud se nepovede, zkusíme Jason konvenci pro resources (pro prípad, že je to v Jar)
-            // super.loadAS("/" + protectorFileName);
+            System.out.println("Failed to load asl file: " + fullPath + ". There might be a syntax error in it.");
         }
     }
 }
